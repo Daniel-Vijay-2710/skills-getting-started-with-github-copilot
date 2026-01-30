@@ -1,21 +1,18 @@
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from flask.testing import TestClient
 
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-import app
+from app import app
 
-app_instance = FastAPI()
-app_instance.mount("/", app.app)
-client = TestClient(app.app)
+client = TestClient(app)
 
 def test_get_activities():
     response = client.get("/activities")
     assert response.status_code == 200
-    data = response.json()
+    data = response.get_json()
     assert isinstance(data, dict)
     assert "Chess Club" in data
 
