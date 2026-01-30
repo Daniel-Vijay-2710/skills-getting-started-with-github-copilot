@@ -1,3 +1,43 @@
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route("/activities", methods=["GET"])
+def get_activities():
+    return jsonify(activities)
+
+@app.route("/activities/<activity_name>/signup", methods=["POST"])
+def signup(activity_name):
+    email = request.args.get("email")
+    if not email:
+        return jsonify({"detail": "Email is required"}), 400
+    activity = activities.get(activity_name)
+    if not activity:
+        return jsonify({"detail": "Activity not found"}), 404
+    if email in activity["participants"]:
+        return jsonify({"detail": "Already signed up"}), 400
+    if len(activity["participants"]) >= activity["max_participants"]:
+        return jsonify({"detail": "Activity is full"}), 400
+    activity["participants"].append(email)
+    return jsonify({"message": f"Signed up for {activity_name}"})
+
+@app.route("/activities/<activity_name>/unregister", methods=["POST"])
+def unregister(activity_name):
+    email = request.args.get("email")
+    if not email:
+        return jsonify({"detail": "Email is required"}), 400
+    activity = activities.get(activity_name)
+    if not activity:
+        return jsonify({"detail": "Activity not found"}), 404
+    if email not in activity["participants"]:
+        return jsonify({"detail": "Participant not found"}), 404
+    activity["participants"].remove(email)
+    return jsonify({"message": f"{email} removed from {activity_name}"})
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
 activities = {
     "Chess Club": {
         "description": "Learn strategies and compete in chess tournaments",
