@@ -1,25 +1,43 @@
-"""
-High School Management System API
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 
-A super simple FastAPI application that allows students to view and sign up
-for extracurricular activities at Mergington High School.
-"""
+app = Flask(__name__)
+CORS(app)
 
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
-import os
-from pathlib import Path
+@app.route("/activities", methods=["GET"])
+def get_activities():
+    return jsonify(activities)
 
-app = FastAPI(title="Mergington High School API",
-              description="API for viewing and signing up for extracurricular activities")
+@app.route("/activities/<activity_name>/signup", methods=["POST"])
+def signup(activity_name):
+    email = request.args.get("email")
+    if not email:
+        return jsonify({"detail": "Email is required"}), 400
+    activity = activities.get(activity_name)
+    if not activity:
+        return jsonify({"detail": "Activity not found"}), 404
+    if email in activity["participants"]:
+        return jsonify({"detail": "Already signed up"}), 400
+    if len(activity["participants"]) >= activity["max_participants"]:
+        return jsonify({"detail": "Activity is full"}), 400
+    activity["participants"].append(email)
+    return jsonify({"message": f"Signed up for {activity_name}"})
 
-# Mount the static files directory
-current_dir = Path(__file__).parent
-app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
-          "static")), name="static")
+@app.route("/activities/<activity_name>/unregister", methods=["POST"])
+def unregister(activity_name):
+    email = request.args.get("email")
+    if not email:
+        return jsonify({"detail": "Email is required"}), 400
+    activity = activities.get(activity_name)
+    if not activity:
+        return jsonify({"detail": "Activity not found"}), 404
+    if email not in activity["participants"]:
+        return jsonify({"detail": "Participant not found"}), 404
+    activity["participants"].remove(email)
+    return jsonify({"message": f"{email} removed from {activity_name}"})
 
-# In-memory activity database
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
 activities = {
     "Chess Club": {
         "description": "Learn strategies and compete in chess tournaments",
@@ -38,30 +56,41 @@ activities = {
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+    },
+    "Basketball Team": {
+        "description": "Join the basketball team and compete in local tournaments",
+        "schedule": "Tuesdays and Thursdays, 4:00 PM - 6:00 PM",
+        "max_participants": 15,
+        "participants": []
+    },
+    "Soccer Club": {
+        "description": "Practice soccer skills and play matches",
+        "schedule": "Mondays and Wednesdays, 3:00 PM - 5:00 PM",
+        "max_participants": 20,
+        "participants": []
+    },
+    "Art Club": {
+        "description": "Explore various art techniques and create projects",
+        "schedule": "Wednesdays, 3:30 PM - 5:00 PM",
+        "max_participants": 15,
+        "participants": []
+    },
+    "Drama Club": {
+        "description": "Participate in theater productions and improve acting skills",
+        "schedule": "Fridays, 4:00 PM - 6:00 PM",
+        "max_participants": 20,
+        "participants": []
+    },
+    "Debate Team": {
+        "description": "Engage in debates and improve public speaking skills",
+        "schedule": "Thursdays, 3:30 PM - 5:00 PM",
+        "max_participants": 12,
+        "participants": []
+    },
+    "Science Club": {
+        "description": "Conduct experiments and explore scientific concepts",
+        "schedule": "Tuesdays, 3:00 PM - 4:30 PM",
+        "max_participants": 15,
+        "participants": []
     }
 }
-
-
-@app.get("/")
-def root():
-    return RedirectResponse(url="/static/index.html")
-
-
-@app.get("/activities")
-def get_activities():
-    return activities
-
-
-@app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
-    """Sign up a student for an activity"""
-    # Validate activity exists
-    if activity_name not in activities:
-        raise HTTPException(status_code=404, detail="Activity not found")
-
-    # Get the specific activity
-    activity = activities[activity_name]
-
-    # Add student
-    activity["participants"].append(email)
-    return {"message": f"Signed up {email} for {activity_name}"}
